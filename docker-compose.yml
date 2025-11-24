@@ -1,56 +1,71 @@
 version: '3.8'
 
 services:
-
-  nginx:
-    build:
-      context: ./nginx          # ← папка с Dockerfile
-      dockerfile: Dockerfile    # ← обязательно указать имя файла
-    container_name: nginx
-    ports:
-      - "8080:80"
-    networks:
-      - app
-    depends_on:
-      - php
-
-  php:
-    build:
-      context: ./php            # ← папка с Dockerfile
-      dockerfile: Dockerfile    # ← обязательно указать имя файла
-    container_name: php
-    networks:
-      - app
-
   mariadb:
-    image: mariadb:10.9
+    image: mariadb:10.6
     container_name: mariadb
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: test
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: appdb
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: apppass
+    volumes:
+      - ./mariadb/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "3306:3306"
     networks:
-      - app
+      - backend
+
+  php:
+    build: ./php
+    container_name: php
+    volumes:
+      - ./www:/var/www/html
+    environment:
+      DB_HOST: mariadb
+      DB_NAME: appdb
+      DB_USER: appuser
+      DB_PASS: apppass
+    networks:
+      - backend
+
+  nginx:
+    image: nginx:stable
+    container_name: nginx
+    depends_on:
+      - php
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./www:/var/www/html:ro
+    networks:
+      - backend
 
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
       - "9090:9090"
     networks:
-      - app
+      - backend
 
-  blackbox_exporter:
-    image: prom/blackbox-exporter:latest
-    container_name: blackbox_exporter
-    ports:
-      - "9115:9115"
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
-      - ./blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
     networks:
-      - app
+      - backend
 
 networks:
-  app:
+  backend:
     driver: bridge

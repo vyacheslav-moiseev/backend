@@ -2,24 +2,7 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
-
-  - job_name: 'php-metrics'
+  - job_name: 'php_app'
     metrics_path: /metrics
     static_configs:
       - targets: ['nginx:80']
-
-  - job_name: 'api-probe'
-    metrics_path: /probe
-    params:
-      module: [http_2xx]
-    static_configs:
-      - targets:
-          - http://nginx:80/users
-          - http://nginx:80/posts
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: __param_target
-      - target_label: __address__
-        replacement: blackbox_exporter:9115
-      - source_labels: [__param_target]
-        target_label: instance
