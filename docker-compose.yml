@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+
+  nginx:
+    build:
+      context: ./nginx          # ← папка с Dockerfile
+      dockerfile: Dockerfile    # ← обязательно указать имя файла
+    container_name: nginx
+    ports:
+      - "8080:80"
+    networks:
+      - app
+    depends_on:
+      - php
+
+  php:
+    build:
+      context: ./php            # ← папка с Dockerfile
+      dockerfile: Dockerfile    # ← обязательно указать имя файла
+    container_name: php
+    networks:
+      - app
+
+  mariadb:
+    image: mariadb:10.9
+    container_name: mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: test
+    networks:
+      - app
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - app
+
+  blackbox_exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: blackbox_exporter
+    ports:
+      - "9115:9115"
+    volumes:
+      - ./blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml
+    networks:
+      - app
+
+networks:
+  app:
+    driver: bridge
