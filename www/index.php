@@ -1,29 +1,36 @@
 <?php
-// Simple PHP app with PDO + file-backed metrics for Prometheus scraping.
-// Routes: /users, /users/{id}, /posts, /posts/{id}, /metrics
+header('Content-Type: application/json');
 
-$dsn = sprintf('mysql:host=%s;dbname=%s;charset=utf8mb4', getenv('DB_HOST')?:'127.0.0.1', getenv('DB_NAME')?:'appdb');
-$user = getenv('DB_USER')?:'appuser';
-$pass = getenv('DB_PASS')?:'apppass';
+// DB connection
+$dsn = sprintf(
+    'mysql:host=%s;dbname=%s;charset=utf8mb4',
+    getenv('DB_HOST') ?: 'mariadb',
+    getenv('DB_NAME') ?: 'backend'
+);
+$user = getenv('DB_USER') ?: 'user';
+$pass = getenv('DB_PASS') ?: 'password';
 
 try {
-    $pdo = new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
+    $pdo = new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error'=>'DB connection failed', 'message'=>$e->getMessage()]);
+    echo json_encode(['error' => 'DB connection failed', 'message' => $e->getMessage()]);
     exit;
 }
 
 // metrics file
 $metrics_file = '/tmp/php_metrics.json';
 if (!file_exists($metrics_file)) {
-    file_put_contents($metrics_file, json_encode(['requests_total'=>0,'request_duration_seconds'=>[], 'db_errors'=>0]));
+    file_put_contents($metrics_file, json_encode([
+        'requests_total' => 0,
+        'request_duration_seconds' => [],
+        'db_errors' => 0
+    ]));
 }
 
-function inc_metric($name, $value=1) {
+function inc_metric($name, $value = 1) {
     global $metrics_file;
-    $data = json_decode(@file_get_contents($metrics_file), true);
-    if (!$data) $data = [];
+    $data = json_decode(@file_get_contents($metrics_file), true) ?: [];
     if (!isset($data[$name])) $data[$name] = 0;
     $data[$name] += $value;
     file_put_contents($metrics_file, json_encode($data));
@@ -31,47 +38,42 @@ function inc_metric($name, $value=1) {
 
 function observe_duration($val) {
     global $metrics_file;
-    $data = json_decode(@file_get_contents($metrics_file), true);
-    if (!$data) $data = [];
+    $data = json_decode(@file_get_contents($metrics_file), true) ?: [];
     if (!isset($data['request_duration_seconds'])) $data['request_duration_seconds'] = [];
     $data['request_duration_seconds'][] = $val;
     file_put_contents($metrics_file, json_encode($data));
 }
 
+// start timer
 $start = microtime(true);
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
 
-header('Content-Type: application/json');
-
 try {
+    // Prometheus metrics endpoint
     if ($uri === '/metrics') {
-        // return prometheus plain text exposition
         $data = json_decode(@file_get_contents($metrics_file), true) ?: [];
         header('Content-Type: text/plain; version=0.0.4');
-        $out = [];
-        $out[] = '# HELP php_requests_total Total HTTP requests';
-        $out[] = '# TYPE php_requests_total counter';
-        $out[] = 'php_requests_total ' . ($data['requests_total'] ?? 0);
-        $out[] = '# HELP php_request_duration_seconds Summary of request durations';
-        $out[] = '# TYPE php_request_duration_seconds summary';
+        echo "# HELP php_requests_total Total HTTP requests\n";
+        echo "# TYPE php_requests_total counter\n";
+        echo "php_requests_total " . ($data['requests_total'] ?? 0) . "\n";
+        echo "# HELP php_request_duration_seconds Summary of request durations\n";
+        echo "# TYPE php_request_duration_seconds summary\n";
         $count = count($data['request_duration_seconds'] ?? []);
         $sum = array_sum($data['request_duration_seconds'] ?? []);
-        $out[] = 'php_request_duration_seconds_count ' . $count;
-        $out[] = 'php_request_duration_seconds_sum ' . $sum;
-        $out[] = '# HELP php_db_errors_total Total DB errors';
-        $out[] = '# TYPE php_db_errors_total counter';
-        $out[] = 'php_db_errors_total ' . ($data['db_errors'] ?? 0);
-        echo implode("\n", $out);
+        echo "php_request_duration_seconds_count $count\n";
+        echo "php_request_duration_seconds_sum $sum\n";
+        echo "# HELP php_db_errors_total Total DB errors\n";
+        echo "# TYPE php_db_errors_total counter\n";
+        echo "php_db_errors_total " . ($data['db_errors'] ?? 0) . "\n";
         exit;
     }
 
-    // users endpoints
+    // USERS endpoints
     if (preg_match('#^/users/?$#', $uri)) {
         if ($method === 'GET') {
             $stmt = $pdo->query('SELECT id, name, email, created_at FROM users');
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            echo json_encode($rows);
+            echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
         } elseif ($method === 'POST') {
             $input = json_decode(file_get_contents('php://input'), true);
             $stmt = $pdo->prepare('INSERT INTO users (name, email) VALUES (?, ?)');
@@ -79,10 +81,10 @@ try {
             echo json_encode(['id' => $pdo->lastInsertId()]);
         } else {
             http_response_code(405);
-            echo json_encode(['error'=>'method not allowed']);
+            echo json_encode(['error' => 'method not allowed']);
         }
-        inc_metric('requests_total',1);
-        $duration = microtime(true)-$start; observe_duration($duration);
+        inc_metric('requests_total', 1);
+        observe_duration(microtime(true) - $start);
         exit;
     }
 
@@ -107,17 +109,16 @@ try {
             http_response_code(405);
             echo json_encode(['error'=>'method not allowed']);
         }
-        inc_metric('requests_total',1);
-        $duration = microtime(true)-$start; observe_duration($duration);
+        inc_metric('requests_total', 1);
+        observe_duration(microtime(true) - $start);
         exit;
     }
 
-    // posts endpoints
+    // POSTS endpoints
     if (preg_match('#^/posts/?$#', $uri)) {
         if ($method === 'GET') {
             $stmt = $pdo->query('SELECT id, user_id, title, body, created_at FROM posts');
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            echo json_encode($rows);
+            echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
         } elseif ($method === 'POST') {
             $input = json_decode(file_get_contents('php://input'), true);
             $stmt = $pdo->prepare('INSERT INTO posts (user_id, title, body) VALUES (?, ?, ?)');
@@ -127,8 +128,8 @@ try {
             http_response_code(405);
             echo json_encode(['error'=>'method not allowed']);
         }
-        inc_metric('requests_total',1);
-        $duration = microtime(true)-$start; observe_duration($duration);
+        inc_metric('requests_total', 1);
+        observe_duration(microtime(true) - $start);
         exit;
     }
 
@@ -153,19 +154,19 @@ try {
             http_response_code(405);
             echo json_encode(['error'=>'method not allowed']);
         }
-        inc_metric('requests_total',1);
-        $duration = microtime(true)-$start; observe_duration($duration);
+        inc_metric('requests_total', 1);
+        observe_duration(microtime(true) - $start);
         exit;
     }
 
     // default
     http_response_code(404);
     echo json_encode(['error'=>'not found']);
+
 } catch (Exception $e) {
-    // increment db error metric
     $data = json_decode(@file_get_contents($metrics_file), true) ?: [];
     $data['db_errors'] = ($data['db_errors'] ?? 0) + 1;
     file_put_contents($metrics_file, json_encode($data));
     http_response_code(500);
-    echo json_encode(['error'=>'exception','message'=>$e->getMessage()]);
+    echo json_encode(['error'=>'exception', 'message'=>$e->getMessage()]);
 }
