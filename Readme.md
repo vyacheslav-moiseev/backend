@@ -70,3 +70,28 @@ curl -s http://localhost:8080/metrics | head
 Nginx status через официальный nginx-prometheus-exporter
 MariaDB exporter отключён за ненадобностью (можно включить позже)
 Grafana дашборд подтягивается автоматически через provisioning
+
+
+## Создать user-a
+curl -X POST http://localhost:8080/users -d '{"name":"Test","email":"test@example.com"}' -H "Content-Type: application/json"
+
+{
+id: 2,
+name: "Test",
+email: "test@test.test",
+created_at: "2025-11-24 17:33:45"
+}
+
+## Удалить
+curl -X DELETE http://localhost:8080/users/1
+
+## 
+curl -X POST http://localhost:8080/posts  -H "Content-Type: application/json"  -d '{  "user_id": 2, "title": "My test post", "body": "This is test post."}'
+
+{
+id: 1,
+user_id: 2,
+title: "My test post",
+body: "This is test post.",
+created_at: "2025-11-24 18:09:27"
+}
