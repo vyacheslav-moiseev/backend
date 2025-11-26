@@ -49,7 +49,9 @@ services:
     container_name: mariadb-exporter
     restart: unless-stopped
     environment:
-      DATA_SOURCE_NAME: "user:password@(mariadb:3306)/backend"
+      DATA_SOURCE_NAME: "user:password@(mariadb:3306)/backend?charset=utf8&parseTime=True&loc=Local"
+    expose:
+      - "9104"  # Для scrape внутри сети
     depends_on:
       - mariadb
     networks:

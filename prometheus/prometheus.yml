@@ -8,17 +8,18 @@ scrape_configs:
 
   - job_name: 'nginx'
     static_configs:
-      - targets: ['nginx:80']  # Или добавь nginx-exporter sidecar на 9113
-    metrics_path: /stub_status  # Базово; для продвинутого — /nginx_status с vts_module
+      - targets: ['nginx:80']
+    metrics_path: /nginx_status  # Или /stub_status — см. ниже
 
   - job_name: 'php-app'
     static_configs:
       - targets: ['nginx:80']
-    metrics_path: /metrics  # Scrape через nginx к src/metrics.php
+    metrics_path: /metrics
 
   - job_name: 'mariadb'
     static_configs:
-      - targets: ['mariadb-exporter:9104']  # Добавь сервис exporter ниже
+      - targets: ['mariadb-exporter:9104']  # ← ТОЧНО 9104, имя контейнера
+    metrics_path: /metrics
 
 rule_files:
-  - 'alert.rules.yml'  # Для алертов, напр. high_error_rate
+  - 'alert.rules.yml'  # Пустой файл, если нет

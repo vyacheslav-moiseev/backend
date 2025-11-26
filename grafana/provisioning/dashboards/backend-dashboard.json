@@ -1,48 +1,200 @@
 {
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
   "dashboard": {
     "id": null,
-    "uid": "backend-api",
-    "title": "Backend API + DB Monitoring",
-    "tags": ["backend", "php", "mariadb"],
+    "title": "Backend API Metrics",
+    "tags": ["backend", "monitoring"],
     "timezone": "browser",
-    "schemaVersion": 38,
     "refresh": "10s",
     "panels": [
       {
-        "type": "stat",
-        "title": "HTTP Requests Total",
-        "gridPos": { "x": 0, "y": 0, "w": 8, "h": 6 },
-        "targets": [{ "expr": "http_requests_total", "legendFormat": "requests" }]
-      },
-      {
+        "title": "HTTP Requests Rate (5m)",
         "type": "timeseries",
-        "title": "Requests per second",
-        "gridPos": { "x": 8, "y": 0, "w": 16, "h": 6 },
-        "targets": [{ "expr": "rate(http_requests_total[5m])" }]
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "Prometheus"
+            },
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{endpoint}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 9,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "options": {
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom"
+          }
+        }
       },
       {
+        "title": "DB Queries Rate",
         "type": "stat",
-        "title": "DB Queries Total",
-        "gridPos": { "x": 0, "y": 6, "w": 8, "h": 6 },
-        "targets": [{ "expr": "db_queries_total", "legendFormat": "queries" }]
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "Prometheus"
+            },
+            "expr": "rate(db_queries_total[5m])",
+            "refId": "B"
+          }
+        ],
+        "gridPos": {
+          "h": 9,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 50
+                },
+                {
+                  "color": "red",
+                  "value": 100
+                }
+              ]
+            },
+            "unit": "reqps"
+          }
+        }
       },
       {
-        "type": "gauge",
-        "title": "MariaDB Active Connections",
-        "gridPos": { "x": 8, "y": 6, "w": 8, "h": 6 },
-        "targets": [{ "expr": "mysql_global_status_threads_connected" }]
-      },
-      {
-        "type": "timeseries",
         "title": "Nginx Active Connections",
-        "gridPos": { "x": 16, "y": 6, "w": 8, "h": 6 },
-        "targets": [{ "expr": "nginx_connections_active" }]
+        "type": "gauge",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "Prometheus"
+            },
+            "expr": "nginx_connections_active",
+            "refId": "C"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 9
+        },
+        "options": {
+          "orientation": "auto",
+          "min": 0,
+          "max": 100
+        }
+      },
+      {
+        "title": "MariaDB Threads Connected",
+        "type": "stat",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "Prometheus"
+            },
+            "expr": "mysql_global_status_threads_connected",
+            "refId": "D"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 9
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 10
+                }
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "title": "Error Rate (4xx/5xx)",
+        "type": "timeseries",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "Prometheus"
+            },
+            "expr": "rate(http_requests_total{status=~\"4..|5..\"}[5m])",
+            "refId": "E"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 17
+        }
       }
     ],
-    "templating": { "list": [] },
-    "annotations": { "list": [] },
-    "version": 1
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "schemaVersion": 38,
+    "version": 2,
+    "uid": "backend-metrics"
   },
-  "folderId": 0,
-  "overwrite": true
+  "folder": 0,
+  "overwrite": true,
+  "folderUid": ""
 }
