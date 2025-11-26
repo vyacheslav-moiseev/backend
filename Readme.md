@@ -1,3 +1,12 @@
+# Monitoring System · Prometheus + Grafana + Node Exporter + Alertmanager
+
+![Go](https://img.shields.io/badge/Go-1.23-00ADD8?logo=go&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?logo=prometheus&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-F46800?logo=grafana&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+
 Backend API + Full Monitoring Stack
 PHP 8 + Nginx + MariaDB + Prometheus + Grafana + Docker Compose
 Полностью рабочий, проверенный на macOS (M1/M2/M3) и Linux проект тестового задания
@@ -75,3 +84,15 @@ title: "My test post",
 body: "This is test post.",
 created_at: "2025-11-24 18:09:27"
 }
+
+
+## ТЗ
+
+Бэкэнд приложения
+В docker развернуть nginx, php >8, mariadb >10
+Реализовать API приложения с CRUD операциями в БД, не менее двух сущностей
+Дополнительно:
+прикрутить метрики prometheus, на выбор исполнителя, метрики должны иметь смысл
+развернуть prometheus & grafana
+настроить экспорт метрик в prometheus
+настроить визуализацию метрик в grafana
