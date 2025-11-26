@@ -1,0 +1,9 @@
+apiVersion: 1
+providers:
+  - name: 'PHP API dashboards'
+    orgId: 1
+    folder: 'PHP API'
+    type: file
+    disableDeletion: false
+    options:
+      path: /var/lib/grafana/dashboards
