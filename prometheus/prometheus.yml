@@ -2,24 +2,15 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
-  - job_name: 'prometheus'
+  - job_name: prometheus
     static_configs:
       - targets: ['localhost:9090']
 
-  - job_name: 'nginx'
+  - job_name: php-app
     static_configs:
-      - targets: ['nginx:80']
-    metrics_path: /nginx_status  # Или /stub_status — см. ниже
-
-  - job_name: 'php-app'
-    static_configs:
-      - targets: ['nginx:80']
+      - targets: ['host.docker.internal:8080']
     metrics_path: /metrics
 
-  - job_name: 'mariadb'
+  - job_name: nginx
     static_configs:
-      - targets: ['mariadb-exporter:9104']  # ← ТОЧНО 9104, имя контейнера
-    metrics_path: /metrics
-
-rule_files:
-  - 'alert.rules.yml'  # Пустой файл, если нет
+      - targets: [ 'nginx-exporter:9113' ]

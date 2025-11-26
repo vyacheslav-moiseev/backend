@@ -26,6 +26,18 @@ services:
     networks:
       - app-network
 
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:latest
+    container_name: nginx-exporter
+    restart: unless-stopped
+    command: -nginx.scrape-uri=http://nginx:80/nginx_status
+    ports:
+      - "9113:9113"
+    depends_on:
+      - nginx
+    networks:
+      - app-network
+
   mariadb:
     image: mariadb:10.11
     container_name: mariadb
@@ -40,7 +52,11 @@ services:
     volumes:
       - mariadb_data:/var/lib/mysql
       - ./db:/docker-entrypoint-initdb.d
-    command: --performance-schema=ON
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uuser", "-ppassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     networks:
       - app-network
 
@@ -48,12 +64,13 @@ services:
     image: prom/mysqld-exporter:latest
     container_name: mariadb-exporter
     restart: unless-stopped
+    ports:
+      - "9104:9104"                     # ← обязательно наружу!
     environment:
-      DATA_SOURCE_NAME: "user:password@(mariadb:3306)/backend?charset=utf8&parseTime=True&loc=Local"
-    expose:
-      - "9104"  # Для scrape внутри сети
+      DATA_SOURCE_NAME: "user:password@(mariadb:3306)/backend"
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy
     networks:
       - app-network
 
@@ -64,16 +81,14 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      # ← ВОТ ЭТА СТРОКА БЫЛА С ПРОБЕЛОМ! Теперь без пробелов и с :ro
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--web.enable-lifecycle'
-    depends_on:
-      - nginx
-      - mariadb-exporter
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # ← ЭТО САМОЕ ВАЖНОЕ НА MACOS
     networks:
       - app-network
 

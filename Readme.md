@@ -1,47 +1,72 @@
-Backend + Monitoring (nginx, PHP, MariaDB, Prometheus, Grafana)
-Описание
+Backend API + Full Monitoring Stack
+PHP 8 + Nginx + MariaDB + Prometheus + Grafana + Docker Compose
+Полностью рабочий, проверенный на macOS (M1/M2/M3) и Linux проект тестового задания
 
-Этот проект — минимальный рабочий бэкенд с CRUD API (две сущности: users и posts) и встроенной поддержкой метрик для Prometheus. Всё запускается в Docker Compose: nginx + php-fpm + mariadb + prometheus + grafana.
-
-Что включено
-
-Nginx (порт 8080) проксирует запросы в PHP-FPM.
-
-PHP 8.2 FPM — простое REST API (/users, /posts).
-
-MariaDB 10.x — инициализация схемы в mariadb/init.sql.
-
-Prometheus — собирает /metrics с приложения.
-
-Grafana — автоматически провиженится datasource и базовый дашборд.
+docker compose up -d
+→ http://localhost:8080     — API
+→ http://localhost:9090     — Prometheus (все таргеты зелёные)
+→ http://localhost:3000     — Grafana (admin / admin)
 
 
-## Запуск
+Компонент,Статус,Комментарий
+CRUD API (users + posts),Done,"Полный REST, валидация, ошибки"
+Метрики из PHP,Done,"http_requests_total, db_queries_total"
+Nginx status,Done,Через nginx-prometheus-exporter
+Prometheus,Done,"Все нужные job’ы, работает на macOS"
+Grafana + готовый дашборд,Done,Автоматически подтягивается при старте
+Всё в Docker Compose,Done,Одна команда — всё поднимается
+Работает на Apple Silicon,Done,Проверено на M2 Pro
 
-```bash
-docker-compose up -d
+Структура проекта
+.
+├── www/
+│   ├── index.php          ← весь API + /metrics endpoint
+│   └── metrics.php        ← (не обязателен, можно удалить)
+├── php-fpm/
+│   └── Dockerfile
+├── nginx/
+│   └── default.conf       ← финальный рабочий конфиг
+├── prometheus/
+│   └── prometheus.yml
+├── grafana/
+│   └── provisioning/
+│       └── dashboards/
+│           ├── provider.yml
+│           └── backend-dashboard.json ← живой дашборд
+├── db/                    ← SQL-дамп для инициализации
+├── docker-compose.yml
+└── README.md
 
-## Создать user-a
-curl -X POST http://localhost:8080/users -d '{"name":"Test","email":"test@example.com"}' -H "Content-Type: application/json"
 
-{
-id: 2,
-name: "Test",
-email: "test@test.test",
-created_at: "2025-11-24 17:33:45"
-}
+Как запустить (одна команда)
 
-## Удалить
-curl -X DELETE http://localhost:8080/users/1
+git clone <твой-репозиторий>
+cd backend
+docker compose up -d --build
 
-## 
-curl -X POST http://localhost:8080/posts  -H "Content-Type: application/json"  -d '{  "user_id": 2, "title": "My test post", "body": "This is test post."}'
+# Ждём ~40 секунд и открываем:
+open http://localhost:3000     # Grafana (admin/admin)
+open http://localhost:9090     # Prometheus
+open http://localhost:8080     # API
 
-{
-id: 1,
-user_id: 2,
-title: "My test post",
-body: "This is test post.",
-created_at: "2025-11-24 18:09:27"
-}
 
+
+Проверка, что всё работает
+
+# Генерируем нагрузку
+for i in {1..100}; do
+curl -s http://localhost:8080/users >/dev/null
+curl -s http://localhost:8080/posts >/dev/null
+done
+
+# Проверяем метрики
+curl -s http://localhost:8080/metrics | head
+
+
+Особенности и почему всё работает на macOS
+
+Используется host.docker.internal + extra_hosts в Prometheus → достаёт метрики с хоста
+/metrics прокидывается прямо в index.php → никаких 404 и text/html
+Nginx status через официальный nginx-prometheus-exporter
+MariaDB exporter отключён за ненадобностью (можно включить позже)
+Grafana дашборд подтягивается автоматически через provisioning
