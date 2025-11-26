@@ -2,11 +2,23 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
   - job_name: 'nginx'
     static_configs:
-      - targets: ['nginx:80']
+      - targets: ['nginx:80']  # Или добавь nginx-exporter sidecar на 9113
+    metrics_path: /stub_status  # Базово; для продвинутого — /nginx_status с vts_module
 
-  - job_name: 'php_api'
+  - job_name: 'php-app'
     static_configs:
-      - targets: ['nginx:80']   # Nginx контейнер
-    metrics_path: /metrics
+      - targets: ['nginx:80']
+    metrics_path: /metrics  # Scrape через nginx к src/metrics.php
+
+  - job_name: 'mariadb'
+    static_configs:
+      - targets: ['mariadb-exporter:9104']  # Добавь сервис exporter ниже
+
+rule_files:
+  - 'alert.rules.yml'  # Для алертов, напр. high_error_rate

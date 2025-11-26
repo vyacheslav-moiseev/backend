@@ -1,0 +1,48 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "backend-api",
+    "title": "Backend API + DB Monitoring",
+    "tags": ["backend", "php", "mariadb"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "refresh": "10s",
+    "panels": [
+      {
+        "type": "stat",
+        "title": "HTTP Requests Total",
+        "gridPos": { "x": 0, "y": 0, "w": 8, "h": 6 },
+        "targets": [{ "expr": "http_requests_total", "legendFormat": "requests" }]
+      },
+      {
+        "type": "timeseries",
+        "title": "Requests per second",
+        "gridPos": { "x": 8, "y": 0, "w": 16, "h": 6 },
+        "targets": [{ "expr": "rate(http_requests_total[5m])" }]
+      },
+      {
+        "type": "stat",
+        "title": "DB Queries Total",
+        "gridPos": { "x": 0, "y": 6, "w": 8, "h": 6 },
+        "targets": [{ "expr": "db_queries_total", "legendFormat": "queries" }]
+      },
+      {
+        "type": "gauge",
+        "title": "MariaDB Active Connections",
+        "gridPos": { "x": 8, "y": 6, "w": 8, "h": 6 },
+        "targets": [{ "expr": "mysql_global_status_threads_connected" }]
+      },
+      {
+        "type": "timeseries",
+        "title": "Nginx Active Connections",
+        "gridPos": { "x": 16, "y": 6, "w": 8, "h": 6 },
+        "targets": [{ "expr": "nginx_connections_active" }]
+      }
+    ],
+    "templating": { "list": [] },
+    "annotations": { "list": [] },
+    "version": 1
+  },
+  "folderId": 0,
+  "overwrite": true
+}
