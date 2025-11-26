@@ -17,37 +17,17 @@ Grafana + готовый дашборд,Done,Автоматически подт
 Всё в Docker Compose,Done,Одна команда — всё поднимается
 Работает на Apple Silicon,Done,Проверено на M2 Pro
 
-Структура проекта
-.
-├── www/
-│   ├── index.php          ← весь API + /metrics endpoint
-│   └── metrics.php        ← (не обязателен, можно удалить)
-├── php-fpm/
-│   └── Dockerfile
-├── nginx/
-│   └── default.conf       ← финальный рабочий конфиг
-├── prometheus/
-│   └── prometheus.yml
-├── grafana/
-│   └── provisioning/
-│       └── dashboards/
-│           ├── provider.yml
-│           └── backend-dashboard.json ← живой дашборд
-├── db/                    ← SQL-дамп для инициализации
-├── docker-compose.yml
-└── README.md
+## Быстрый старт
 
+```bash
+# 1. Клонируем репозиторий
+git clone https://github.com/vyacheslav-moiseev/backend.git
+cd monitoring
 
-Как запустить (одна команда)
+# 2. Запускаем всё
+docker compose up -d
 
-git clone <твой-репозиторий>
-cd backend
-docker compose up -d --build
-
-# Ждём ~40 секунд и открываем:
-open http://localhost:3000     # Grafana (admin/admin)
-open http://localhost:9090     # Prometheus
-open http://localhost:8080     # API
+# 3. Готово! Открываем дашборды
 
 
 
